@@ -11,14 +11,16 @@ jsonParser = bodyParser.json();
 app.use(jsonParser);
 
 app.get('/', (req, res)=>{
-	res.send('todo api');
+	res.send(todos);
 })
 
+//get all todos
 app.get('/todos', (req,res)=>{
 	//res.json(todos);
-	res.send('wtf');
+	res.json(todos);
 })
 
+//get individual todo
 app.get('/todos/:id', (req,res)=>{
 	//this is where you got hung up
 	//remember that params are always strings
@@ -44,6 +46,7 @@ app.get('/todos/:id', (req,res)=>{
 	}
 });
 
+//posting a todo 
 app.post('/todos', (req,res)=>{
 	//screen unexpected key:value pairs using underscore
 	var body = _.pick(req.body, "description", "completed");
@@ -63,6 +66,22 @@ app.post('/todos', (req,res)=>{
 	todoNextId += 1;
 	//push body into array
 	res.json(todos);
+});
+
+//delete method
+app.delete('/todo/:id', (req,res)=>{
+	var id = parseInt(req.params.id);
+
+	var todoToDelete = _.findWhere(todos, {id})
+
+	if(!todoToDelete){
+		console.log("todo not found");
+		res.status(404).send('todo not found');
+	}
+	todos = _.without(todos,todoToDelete);
+	res.status(200).send(todoToDelete);
+
+
 })
 
 app.listen(PORT,()=>{
