@@ -1,41 +1,33 @@
 var express = require('express');
+var bodyParser = require('body-parser');
 var app = express();
 const PORT = process.env.PORT || 3000;
 
-var todos = [
-	{
-		id: 1,
-		description: "meet for lunch",
-		completed: false
-	},
-	{
-		id: 2,
-		description: "go shopping",
-		completed: false
-	},
-	{
-		id: 3,
-		description: "feed dog",
-		completed: true
-	}
-];
+var todos = [];
+var todoNextId = 1;
+
+jsonParser = bodyParser.json();
+app.use(jsonParser);
 
 app.get('/', (req, res)=>{
 	res.send('todo api');
 })
 
 app.get('/todos', (req,res)=>{
-	res.json(todos);
+	//res.json(todos);
+	res.send('wtf');
 })
 
 app.get('/todos/:id', (req,res)=>{
+	//this is where you got hung up
+	//remember that params are always strings
+	//you tried to compre a number to a string in an === comparison
 	var id = parseInt(req.params.id);
 	console.log('id: ', id, typeof id)
 	//iterate over array and find the id
 	var todo = todos.find((element)=>{
 		console.log(element.id);
-			return element.id === id
-			
+			return element.id === id			
 		}
 	)
 	console.log(todo);
@@ -45,8 +37,22 @@ app.get('/todos/:id', (req,res)=>{
 	}else{
 		res.status(404).send('Todo Not found');
 	}
+});
 
-	//if not found send a 404
+app.post('/todos', (req,res)=>{
+	var body = req.body;
+	console.log('description:', body);
+
+	var todo = {
+		id: todoNextId,
+		description: body.description,
+		completed: body.completed
+	}
+
+	todos.push(todo);
+	todoNextId += 1;
+	//push body into array
+	res.json(todos);
 })
 
 app.listen(PORT,()=>{
