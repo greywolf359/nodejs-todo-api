@@ -16,8 +16,23 @@ app.get('/', (req, res)=>{
 
 //get all todos
 app.get('/todos', (req,res)=>{
-	//res.json(todos);
-	res.json(todos);
+	var queryParams = req.query;
+	//var filteredTodos = todos;
+	var filteredTodos = todos;
+
+	if(queryParams.completed === 'true'){
+		filteredTodos = _.where(todos, {completed: true})
+	}else if(queryParams.completed === 'false'){
+		filteredTodos = _.where(todos, {completed: false});
+	}
+
+	/*
+		if has property && completed === true
+		
+		else if has prop && completed === false
+	*/
+
+	res.json(filteredTodos);
 })
 
 //get individual todo
