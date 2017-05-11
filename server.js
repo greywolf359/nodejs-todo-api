@@ -1,6 +1,7 @@
 var express = require('express');
 var bodyParser = require('body-parser');
 var _ = require('underscore'); //for refactoring
+var db = require('./db.js');
 var app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -28,7 +29,7 @@ app.get('/todos', (req,res)=>{
 
 	if(queryParams.q && queryParams.q.length > 0){
 		filteredTodos = _.filter(filteredTodos,(todo)=>{
-			return todo.description.toLowerCase().indexOf(queryParams.q.toLowerCase()) >= 0;
+			return todo.description.indexOf(queryParams.q) >= 0;
 		})
 	}
 	res.json(filteredTodos);
@@ -64,8 +65,24 @@ app.get('/todos/:id', (req,res)=>{
 app.post('/todos', (req,res)=>{
 	//screen unexpected key:value pairs using underscore
 	var body = _.pick(req.body, "description", "completed");
-	
 
+
+	//call create on db.todo
+	db.todo.create({
+		description: body.description,
+		completed: body.completed
+	}).then((todo)=>{
+		console.log("todo inserted into database", todo.toJSON());
+		res.json(todo.toJSON());
+	}).catch((e)=>{
+		console.log("***THERE WAS AN ERROR WITH INSERTION***", e)
+		res.status(400).send("there was an error or bad requrest");
+
+	})
+
+	/*****REFACTORED TO USE SQLITE DATABASE****
+	******LEFT THIS CODE IN FOR REFERENCE IF NEEDED
+	THIS WAS JUST USING AN AN ARRAY TO ADD TO
 	if(!_.isBoolean(body.completed) || !_.isString(body.description) || body.description.trim().length === 0){
 		return res.status(400).send();
 	}
@@ -80,6 +97,7 @@ app.post('/todos', (req,res)=>{
 	todoNextId += 1;
 	//push body into array
 	res.json(todos);
+	*******************************************/
 });
 
 //delete method
@@ -121,7 +139,10 @@ app.put('/todo/:id', (req,res)=>{
 
 })
 
-app.listen(PORT,()=>{
-	console.log('Listening on port: ', PORT);
-})
 
+
+db.sequelize.sync().then(()=>{
+	app.listen(PORT,()=>{
+		console.log('Listening on port: ', PORT);
+})
+})
