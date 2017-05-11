@@ -71,16 +71,39 @@ app.post('/todos', (req,res)=>{
 //delete method
 app.delete('/todo/:id', (req,res)=>{
 	var id = parseInt(req.params.id);
-
 	var todoToDelete = _.findWhere(todos, {id})
-
 	if(!todoToDelete){
 		console.log("todo not found");
 		res.status(404).send('todo not found');
 	}
 	todos = _.without(todos,todoToDelete);
 	res.status(200).send(todoToDelete);
+})
 
+app.put('/todo/:id', (req,res)=>{
+	
+	var id = parseInt(req.params.id);
+	var matchedTodo = _.findWhere(todos, {id});//find a match, if any
+	var body = _.pick(req.body, "description", "completed");//strip unexpected key:values
+	var validAttributes = {};
+	if (!matchedTodo){//if not found return a 404
+		return res.status(404).send();
+	}
+	
+	//find todo by id if it exists
+	if(body.hasOwnProperty('completed') && _.isBoolean(body.completed)){
+		validAttributes.completed = body.completed;
+	}else if(body.hasOwnProperty('completed')){//if exists but not a boolean
+		return res.status(400).send("completed exists but not bool");
+	}
+	
+	if(body.hasOwnProperty('description') && _.isString(body.description) && body.description.trim().length > 0){
+		validAttributes.description = body.description;
+	}else{
+		return res.status(400).send("description error");
+	}
+	_.extend(matchedTodo, validAttributes)
+	res.json(matchedTodo);
 
 })
 
