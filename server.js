@@ -17,22 +17,49 @@ app.get('/', (req, res)=>{
 
 //get all todos
 app.get('/todos', (req,res)=>{
-	var queryParams = req.query;
-	//var filteredTodos = todos;
-	var filteredTodos = todos;
+	var query = req.query;
+	var where = {};
 
+	if(query.hasOwnProperty('completed') && query.completed === 'true'){
+		where.completed = true;
+	}else if(query.hasOwnProperty('completed') && query.completed === 'false'){
+		where.completed = false
+	}
+
+	if(query.hasOwnProperty('q') && query.q.length > 0){
+		where.description = {
+			$like: `%${query.q}%`
+		}
+	}
+
+
+	db.todo.findAll({where: where}).then((todos)=>{
+		if(todos){
+			res.json(todos);
+		}else{
+			res.status(400).send('no matching todos found');
+		}
+		
+	}, (error)=>{
+		res.status(500).send("error retrieving...");
+
+	})
+	
+	/********REFACTORED FOR SEQUELIZE********
+	var filteredTodos = todos;
 	if(queryParams.completed === 'true'){
 		filteredTodos = _.where(todos, {completed: true})
 	}else if(queryParams.completed === 'false'){
 		filteredTodos = _.where(todos, {completed: false});
 	}
-
 	if(queryParams.q && queryParams.q.length > 0){
 		filteredTodos = _.filter(filteredTodos,(todo)=>{
 			return todo.description.indexOf(queryParams.q) >= 0;
 		})
 	}
 	res.json(filteredTodos);
+	*****************************************/
+	
 })
 
 //get individual todo
@@ -58,12 +85,13 @@ app.get('/todos/:id', (req,res)=>{
 	
 	db.todo.findById(id).then((todo)=>{
 		if(todo){
-			res.status(200).json(todo);
+			res.status(200).json(toJSON(todo));
 		}else{
 			res.status(404).send("nothing found");
 		}
 	}).catch((e)=>{
 		console.log('error',e);
+		res.status(500).send("server error");
 	})
 	
 	
