@@ -41,8 +41,9 @@ app.get('/todos/:id', (req,res)=>{
 	//remember that params are always strings
 	//you tried to compre a number to a string in an === comparison
 	var id = parseInt(req.params.id);
-	matchedTodo = _.findWhere(todos, {id})
 
+	//-----------REFACTORED AGAIN TO SUPPORT SQLITE
+	//matchedTodo = _.findWhere(todos, {id})
 	/*---CODE REFACTORED TO USE UNDERSCORE
 	KEPT THIS IN CASE IT'S NEEDED FOR REFERENCE
 	console.log('id: ', id, typeof id)
@@ -54,11 +55,20 @@ app.get('/todos/:id', (req,res)=>{
 	)
 	------------------------------------
 	*/
-	if(matchedTodo){
-		res.status(200).json(matchedTodo);
-	}else{
-		res.status(404).send('Todo Not found');
-	}
+	
+	db.todo.findById(id).then((todo)=>{
+		if(todo){
+			res.status(200).json(todo);
+		}else{
+			res.status(404).send("nothing found");
+		}
+	}).catch((e)=>{
+		console.log('error',e);
+	})
+	
+	
+	
+	
 });
 
 //posting a todo 
