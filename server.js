@@ -141,6 +141,25 @@ app.post('/todos', (req,res)=>{
 //delete method
 app.delete('/todo/:id', (req,res)=>{
 	var id = parseInt(req.params.id);
+
+	db.todo.destroy({
+		where: {id}
+	}).then((todo)=>{
+
+		if(todo){
+		console.log("todo deleted from db")
+			res.status(200).send('todo deleted');
+		}else{
+			console.log("todo not found for deletion");
+			res.status(400).send('no todo found for deletion.');
+		}
+	},(err)=>{
+		res.status(500).send('internal error');
+	})
+
+
+	/******REFACTORED CODE TO USE SEQUELIZE AND SQLITE******
+	LEFT IN FOR REFERENCE IF NEEDED
 	var todoToDelete = _.findWhere(todos, {id})
 	if(!todoToDelete){
 		console.log("todo not found");
@@ -148,6 +167,7 @@ app.delete('/todo/:id', (req,res)=>{
 	}
 	todos = _.without(todos,todoToDelete);
 	res.status(200).send(todoToDelete);
+	********************************************************/
 })
 
 app.put('/todo/:id', (req,res)=>{
