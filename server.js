@@ -147,11 +147,9 @@ app.delete('/todo/:id', (req,res)=>{
 	}).then((todo)=>{
 
 		if(todo){
-		console.log("todo deleted from db")
 			res.status(200).send('todo deleted');
 		}else{
-			console.log("todo not found for deletion");
-			res.status(400).send('no todo found for deletion.');
+			res.status(204).send('no todo found for deletion.');
 		}
 	},(err)=>{
 		res.status(500).send('internal error');
@@ -171,30 +169,34 @@ app.delete('/todo/:id', (req,res)=>{
 })
 
 app.put('/todo/:id', (req,res)=>{
-	
 	var id = parseInt(req.params.id);
-	var matchedTodo = _.findWhere(todos, {id});//find a match, if any
 	var body = _.pick(req.body, "description", "completed");//strip unexpected key:values
-	var validAttributes = {};
-	if (!matchedTodo){//if not found return a 404
-		return res.status(404).send();
-	}
+	var attributes = {};
+	
 	
 	//find todo by id if it exists
-	if(body.hasOwnProperty('completed') && _.isBoolean(body.completed)){
-		validAttributes.completed = body.completed;
-	}else if(body.hasOwnProperty('completed')){//if exists but not a boolean
-		return res.status(400).send("completed exists but not bool");
+	if(body.hasOwnProperty('completed')){
+		attributes.completed = body.completed;
 	}
 	
-	if(body.hasOwnProperty('description') && _.isString(body.description) && body.description.trim().length > 0){
-		validAttributes.description = body.description;
-	}else{
-		return res.status(400).send("description error");
+	if(body.hasOwnProperty('description')){
+		attributes.description = body.description;
 	}
-	_.extend(matchedTodo, validAttributes)
-	res.json(matchedTodo);
 
+	db.todo.findById(id).then((todo)=>{
+		if(todo){
+			//returns to the chained promise below
+			todo.update(attributes).then((todo)=>{//fires if todo.update is successful
+			res.status(400).json(todo.toJSON());
+	},(e)=>{
+		res.status(400).json(e)
+	})
+		}else{
+			res.status(404).send();//if not nothing found by update then return 404 to the user
+		}
+	}, ()=>{
+		res.status(500).send();
+	})
 })
 
 
