@@ -199,7 +199,18 @@ app.put('/todo/:id', (req,res)=>{
 	})
 })
 
-
+app.post('/user', (req,res)=>{
+	console.log('eeee');
+	//strip unexpected key:value pairs
+	var body = _.pick(req.body, "email", "password");
+	console.log(body);
+	db.user.create(body).then((userObj)=>{
+		console.log("created user");
+		res.status(200).json(userObj)
+	}).catch((e)=>{
+		res.status(404).send(e);
+	})
+})
 
 db.sequelize.sync().then(()=>{
 	app.listen(PORT,()=>{
