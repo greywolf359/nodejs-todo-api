@@ -206,7 +206,7 @@ app.post('/user', (req,res)=>{
 	console.log(body);
 	db.user.create(body).then((userObj)=>{
 		console.log("created user");
-		res.status(200).json(userObj)
+		res.json(userObj.toPublicJSON())
 	}).catch((e)=>{
 		res.status(404).send(e);
 	})
