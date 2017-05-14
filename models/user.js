@@ -15,7 +15,20 @@ module.exports = function(sequelize, DataTypes){
 				len: [7,100]
 			}
 		}
-	});
+	},
+	{
+		hooks: {
+			beforeValidate: (user, options)=>{
+				if (typeof user.email === 'string'){
+					user.email = user.email.toLowerCase();
+				}
+			}
+		}
+	}
+	);
 }
 
 //look into checking for unique isntances in mongo such as checking a db for an existing email
+/*
+
+*/
