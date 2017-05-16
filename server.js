@@ -215,7 +215,14 @@ app.post('/users/login',(req,res)=>{
 	var body = _.pick(req.body, "email", "password");
 	
 	db.user.authenticate(body).then((user)=>{
-		res.json(user.toPublicJSON());
+
+		var token = user.generateToken('authentication');
+		if (token){
+			res.header('Auth', token).json(user.toPublicJSON());
+		}else{
+			res.status(401).send()
+		}
+		
 	},(e)=>{
 		res.status(401).send()
 	})
@@ -223,7 +230,7 @@ app.post('/users/login',(req,res)=>{
 	//*************************************************************************
 })
 
-db.sequelize.sync({force: true}).then(()=>{
+db.sequelize.sync().then(()=>{
 	app.listen(PORT,()=>{
 		console.log('Listening on port: ', PORT);
 })
