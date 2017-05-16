@@ -223,7 +223,7 @@ app.post('/users/login',(req,res)=>{
 	//*************************************************************************
 })
 
-db.sequelize.sync().then(()=>{
+db.sequelize.sync({force: true}).then(()=>{
 	app.listen(PORT,()=>{
 		console.log('Listening on port: ', PORT);
 })
