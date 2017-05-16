@@ -2,6 +2,7 @@ var express = require('express');
 var bodyParser = require('body-parser');
 var _ = require('underscore'); //for refactoring
 var db = require('./db.js');
+var bcrypt = require('bcryptjs');
 var app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -200,16 +201,26 @@ app.put('/todo/:id', (req,res)=>{
 })
 
 app.post('/user', (req,res)=>{
-	console.log('eeee');
 	//strip unexpected key:value pairs
 	var body = _.pick(req.body, "email", "password");
 	console.log(body);
 	db.user.create(body).then((userObj)=>{
-		console.log("created user");
 		res.json(userObj.toPublicJSON())
 	}).catch((e)=>{
 		res.status(404).send(e);
 	})
+})
+
+app.post('/users/login',(req,res)=>{
+	var body = _.pick(req.body, "email", "password");
+	
+	db.user.authenticate(body).then((user)=>{
+		res.json(user.toPublicJSON());
+	},(e)=>{
+		res.status(401).send()
+	})
+
+	//*************************************************************************
 })
 
 db.sequelize.sync().then(()=>{
