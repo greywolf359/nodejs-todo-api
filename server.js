@@ -3,9 +3,11 @@ var bodyParser = require('body-parser');
 var _ = require('underscore'); //for refactoring
 var db = require('./db.js');
 var bcrypt = require('bcryptjs');
+var middleware = require('./middleware')(db);
+
+
 var app = express();
 const PORT = process.env.PORT || 3000;
-
 var todos = [];
 var todoNextId = 1;
 
@@ -17,7 +19,8 @@ app.get('/', (req, res)=>{
 })
 
 //get all todos
-app.get('/todos', (req,res)=>{
+app.get('/todos', middleware.requireAuthentication, (req,res)=>{
+	console.log('execute todos');
 	var query = req.query;
 	var where = {};
 
@@ -64,7 +67,7 @@ app.get('/todos', (req,res)=>{
 })
 
 //get individual todo
-app.get('/todos/:id', (req,res)=>{
+app.get('/todos/:id', middleware.requireAuthentication, (req,res)=>{
 	//this is where you got hung up
 	//remember that params are always strings
 	//you tried to compre a number to a string in an === comparison
@@ -101,10 +104,11 @@ app.get('/todos/:id', (req,res)=>{
 });
 
 //posting a todo 
-app.post('/todos', (req,res)=>{
+app.post('/todos', middleware.requireAuthentication, (req,res)=>{
 	//screen unexpected key:value pairs using underscore
+	console.log("/todos firing")
 	var body = _.pick(req.body, "description", "completed");
-
+	console.log("post /todos firing", body);
 
 	//call create on db.todo
 	db.todo.create({
@@ -140,7 +144,7 @@ app.post('/todos', (req,res)=>{
 });
 
 //delete method
-app.delete('/todo/:id', (req,res)=>{
+app.delete('/todo/:id', middleware.requireAuthentication, (req,res)=>{
 	var id = parseInt(req.params.id);
 
 	db.todo.destroy({
@@ -169,6 +173,7 @@ app.delete('/todo/:id', (req,res)=>{
 	********************************************************/
 })
 
+//edit an entry
 app.put('/todo/:id', (req,res)=>{
 	var id = parseInt(req.params.id);
 	var body = _.pick(req.body, "description", "completed");//strip unexpected key:values
@@ -200,11 +205,14 @@ app.put('/todo/:id', (req,res)=>{
 	})
 })
 
+//create new user
 app.post('/user', (req,res)=>{
 	//strip unexpected key:value pairs
 	var body = _.pick(req.body, "email", "password");
 	console.log(body);
 	db.user.create(body).then((userObj)=>{
+		//send the user back the data
+		//toPublicJSON is on the user object defined by sequelize.define
 		res.json(userObj.toPublicJSON())
 	}).catch((e)=>{
 		res.status(404).send(e);
@@ -213,10 +221,11 @@ app.post('/user', (req,res)=>{
 
 app.post('/users/login',(req,res)=>{
 	var body = _.pick(req.body, "email", "password");
-	
+	//pass user inputed data to authenticate method on user class
 	db.user.authenticate(body).then((user)=>{
-
+		//if the user is found in the database and the password is correct then generate a token
 		var token = user.generateToken('authentication');
+		//if token exists then build an auth header and give it the value of the token and send it to the user
 		if (token){
 			res.header('Auth', token).json(user.toPublicJSON());
 		}else{

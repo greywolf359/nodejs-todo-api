@@ -59,13 +59,16 @@ module.exports = function(sequelize, DataTypes){
 			generateToken: function(type){
 				if(!_.isString(type)){
 					return undefined;
-					
 				}
 				
 				try{
+					//stringify the passed object and assign id key to id on this instance
+					//as well as the passed type, if it exists
 					var stringData = JSON.stringify({id: this.get('id'), type: type});
 					//remember, AES only knows how to encrypt a string
+					//now you are taking that stringData JSON and encrypting it
 					var encryptedData = cryptojs.AES.encrypt(stringData, 'abc123!').toString();
+					//???
 					var token = jwt.sign({
 						token: encryptedData,
 					},'qwerty000');
@@ -79,37 +82,57 @@ module.exports = function(sequelize, DataTypes){
 		classMethods: {
 			authenticate: function(body){
 				return new Promise((resolve,reject)=>{
-
-
 					//if the user inputs are not both strings then reject
 					if(typeof body.email !== 'string' || typeof body.password !== 'string'){
 						return reject();
-						//return res.status(400).send("email or password is not a string");
 					}
 				//find the user in the db
 				user.findOne({where: {email: body.email}}).then((user)=>{
-				//if exists then get the datafields and compare the password entered with the hash in db
+				//if user exists then get the user inputted password and compare the password hash in db
 				if(user){
-					//var dataToSend = _.pick(user, "id", "email", "createdAt", "updatedAt");
 					//if password comparison fails then reject
 					if(!bcrypt.compareSync(body.password, user.get('password_hash'))){
 						return reject();
-						//return res.status(401).send('unauthorized');
 					}
-					//send data
+					//if password test succeeds then send data
 					resolve(user);
-					//res.status(200).json(dataToSend);
 				}else{
 					//if no match is found then inform user
-					res.status(400).send('no user found');
+					reject();
+					//res.status(400).send('no user found');
 				}
 				}).catch((error)=>{
 					//if there is a server error
-					res.status(500).send('server error ' + error);
+					reject();
+					//res.status(500).send('server error ' + error);
 				})
 				
 				});//close promise
-			}//close authenticate
+			},//close authenticate
+
+
+			findByToken: function(token){
+				return new Promise(function(resolve,reject){
+					try{
+						var decodedJWT = jwt.verify(token, 'qwerty000');
+						var bytes = cryptojs.AES.decrypt(decodedJWT.token, 'abc123!');
+						var tokenData = JSON.parse(bytes.toString(cryptojs.enc.Utf8));
+						
+
+						user.findById(tokenData.id).then((user)=>{
+							if(user){
+								resolve(user);
+							}else{
+								reject("findById returns an error");
+							}
+						},(e)=>{
+							reject(e);
+						})
+					}catch(e){
+						reject(e);
+					}
+				})
+			}
 		}
 	});//closer for sequelize.define
 	return user;
@@ -125,4 +148,8 @@ library such as bycrypt to create the hash and salt.
 You also need to guard against unexpected data appearing in your query string.  Always sanitize any 
 data from the user and allow only expected data into your database and always make sure the db knows
 what type of data to put in a field.
+
+
+
+secondly is token generation.  The POST users/login sends the email/password to the server.  
 */
