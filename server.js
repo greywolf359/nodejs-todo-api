@@ -24,19 +24,21 @@ app.get('/todos', middleware.requireAuthentication, (req,res)=>{
 	var query = req.query;
 	var where = {};
 
+	//determine if completed query is true or false
 	if(query.hasOwnProperty('completed') && query.completed === 'true'){
 		where.completed = true;
 	}else if(query.hasOwnProperty('completed') && query.completed === 'false'){
 		where.completed = false
 	}
 
+	//determine if theres is a search query
 	if(query.hasOwnProperty('q') && query.q.length > 0){
 		where.description = {
 			$like: `%${query.q}%`
 		}
 	}
 
-
+	//pass the query args to the db 
 	db.todo.findAll({where: where}).then((todos)=>{
 		if(todos){
 			res.json(todos);
@@ -106,19 +108,19 @@ app.get('/todos/:id', middleware.requireAuthentication, (req,res)=>{
 //posting a todo 
 app.post('/todos', middleware.requireAuthentication, (req,res)=>{
 	//screen unexpected key:value pairs using underscore
-	console.log("/todos firing")
 	var body = _.pick(req.body, "description", "completed");
-	console.log("post /todos firing", body);
-
+	
 	//call create on db.todo
 	db.todo.create({
 		description: body.description,
 		completed: body.completed
 	}).then((todo)=>{
-		console.log("todo inserted into database", todo.toJSON());
-		res.json(todo.toJSON());
+		req.user.addTodo(todo).then(()=>{
+			return todo.reload();
+		}).then((todo)=>{
+			res.json(todo.toJSON());
+		});
 	}).catch((e)=>{
-		console.log("***THERE WAS AN ERROR WITH INSERTION***", e)
 		res.status(400).send("there was an error or bad requrest");
 
 	})
@@ -210,15 +212,19 @@ app.post('/user', (req,res)=>{
 	//strip unexpected key:value pairs
 	var body = _.pick(req.body, "email", "password");
 	console.log(body);
+	//sequelize uses create to create the entry using the object {body}
+	//then sends the data back to the user
 	db.user.create(body).then((userObj)=>{
 		//send the user back the data
 		//toPublicJSON is on the user object defined by sequelize.define
+		//topublicjson strips off the what user should not see and converts it to json
 		res.json(userObj.toPublicJSON())
 	}).catch((e)=>{
 		res.status(404).send(e);
 	})
 })
 
+//existing user logs in
 app.post('/users/login',(req,res)=>{
 	var body = _.pick(req.body, "email", "password");
 	//pass user inputed data to authenticate method on user class
@@ -239,7 +245,7 @@ app.post('/users/login',(req,res)=>{
 	//*************************************************************************
 })
 
-db.sequelize.sync().then(()=>{
+db.sequelize.sync({force: true}).then(()=>{
 	app.listen(PORT,()=>{
 		console.log('Listening on port: ', PORT);
 })
