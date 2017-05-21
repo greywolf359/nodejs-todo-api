@@ -20,9 +20,11 @@ app.get('/', (req, res)=>{
 
 //get all todos
 app.get('/todos', middleware.requireAuthentication, (req,res)=>{
-	console.log('execute todos');
 	var query = req.query;
-	var where = {};
+	//you get req.user from the middleware and get retrieves the id of that user
+	//remember the user is given a token on login and requireAauthentication takes that token
+	//and finds the user associated with that token
+	var where = {userId: req.user.get('id')};
 
 	//determine if completed query is true or false
 	if(query.hasOwnProperty('completed') && query.completed === 'true'){
@@ -88,9 +90,10 @@ app.get('/todos/:id', middleware.requireAuthentication, (req,res)=>{
 	)
 	------------------------------------
 	*/
-	
-	db.todo.findById(id).then((todo)=>{
-		if(todo){
+	//get foriegn key
+	//find all related todo entries
+	db.todo.findByOne({where: {id, userId: req.user.get('id')}}).then((todo)=>{
+		if(todo.id === id && todo.userId === req.user.get('id')){
 			res.status(200).json(toJSON(todo));
 		}else{
 			res.status(404).send("nothing found");
@@ -150,7 +153,7 @@ app.delete('/todo/:id', middleware.requireAuthentication, (req,res)=>{
 	var id = parseInt(req.params.id);
 
 	db.todo.destroy({
-		where: {id}
+		where: {id: id, userId: req.user.get('id')}
 	}).then((todo)=>{
 
 		if(todo){
@@ -176,7 +179,7 @@ app.delete('/todo/:id', middleware.requireAuthentication, (req,res)=>{
 })
 
 //edit an entry
-app.put('/todo/:id', (req,res)=>{
+app.put('/todo/:id',middleware.requireAuthentication, (req,res)=>{
 	var id = parseInt(req.params.id);
 	var body = _.pick(req.body, "description", "completed");//strip unexpected key:values
 	var attributes = {};
@@ -191,7 +194,7 @@ app.put('/todo/:id', (req,res)=>{
 		attributes.description = body.description;
 	}
 
-	db.todo.findById(id).then((todo)=>{
+	db.todo.findOne({where: {id, userId: req.user.get('id')}}).then((todo)=>{
 		if(todo){
 			//returns to the chained promise below
 			todo.update(attributes).then((todo)=>{//fires if todo.update is successful
@@ -245,7 +248,7 @@ app.post('/users/login',(req,res)=>{
 	//*************************************************************************
 })
 
-db.sequelize.sync({force: true}).then(()=>{
+db.sequelize.sync(/*{force: true}*/).then(()=>{
 	app.listen(PORT,()=>{
 		console.log('Listening on port: ', PORT);
 })
