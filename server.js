@@ -230,22 +230,40 @@ app.post('/user', (req,res)=>{
 //existing user logs in
 app.post('/users/login',(req,res)=>{
 	var body = _.pick(req.body, "email", "password");
+	var userInstance;
 	//pass user inputed data to authenticate method on user class
+	console.log("logging in...");
 	db.user.authenticate(body).then((user)=>{
 		//if the user is found in the database and the password is correct then generate a token
 		var token = user.generateToken('authentication');
+		userInstance = user;
+		return db.token.create({
+			token: token
+		})
 		//if token exists then build an auth header and give it the value of the token and send it to the user
+		/*
 		if (token){
 			res.header('Auth', token).json(user.toPublicJSON());
 		}else{
 			res.status(401).send()
 		}
-		
-	},(e)=>{
-		res.status(401).send()
+		*/
+	}).then((tokenInstance)=>{
+		res.header('Auth', tokenInstance.get('token')).json(userInstance.toPublicJSON());
+	}).catch((e)=>{
+		console.log("error in login", e)
+		res.status(500).send(e);
 	})
 
 	//*************************************************************************
+})
+
+app.delete('/users/login', middleware.requireAuthentication, (req,res)=>{
+	req.token.destroy().then(()=>{
+		res.status(204).send();
+	}).catch((e)=>{
+		res.status(500).send();
+	});
 })
 
 db.sequelize.sync({force: true}).then(()=>{
